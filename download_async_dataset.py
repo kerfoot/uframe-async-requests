@@ -6,8 +6,8 @@ import re
 import os
 import sys
 import argparse
-import shutil
-from netCDF4 import Dataset
+#import shutil
+#from netCDF4 import Dataset
 from uframe_async.hyrax import *
 
 def main(args):
