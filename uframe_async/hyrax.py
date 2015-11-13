@@ -37,6 +37,8 @@ def download_hyrax_nc_files(url, destdir, verbose):
     # url
     parent_nc_dirs = parse_hyrax_parent_url(url)
     if not parent_nc_dirs:
+        sys.stderr.write('No valid Hyrax parent directories found: {:s}\n'.format(url))
+        sys.stderr.flush()
         return
     
     # Retrieve urls pointing to each NetCDF file in it's respective directory
@@ -134,8 +136,11 @@ def download_hyrax_nc_from_url(url, destdir, verbose=False):
     stream = match.groups()[0]
     
     nc_dest = os.path.join(destdir, stream)
+    if verbose:
+        sys.stdout.write('NetCDF destination: {:s}\n'.format(nc_dest))
     if not os.path.exists(nc_dest):
-        sys.stdout.write('Creating destination: {:s}\n'.format(nc_dest))
+        if verbose:
+            sys.stdout.write('Creating destination: {:s}\n'.format(nc_dest))
         os.makedirs(nc_dest)
     
     local_nc = os.path.join(nc_dest, '-'.join([uuid, url_tokens[1]]))
@@ -145,6 +150,9 @@ def download_hyrax_nc_from_url(url, destdir, verbose=False):
     try:
         with open(local_nc, 'wb') as fid:
             r = requests.get(url, stream=True)
+            if r.status_code != 200:
+                sys.stderr.write('Download failed: {:s}\n'.format(r.message))
+                next
             for chunk in r.iter_content(chunk_size=1024):
                 if chunk:
                     fid.write(chunk)
