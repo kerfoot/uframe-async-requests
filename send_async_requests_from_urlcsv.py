@@ -27,6 +27,10 @@ def main(args):
     fid = open(args.request_csv, 'r')
     success = True
     for url in fid:
+        
+        if url.startswith('#'):
+            continue
+        
         #valid = validate_async_request(url.strip())
         #if not valid:
         #    continue
