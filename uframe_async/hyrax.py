@@ -177,7 +177,12 @@ def timestamp_nc_files(nc_files):
             sys.stderr.write('Failed to parse reference designator filename: {:s}\n'.format(nc_file))
             continue
             
-        nci = Dataset(nc_file, 'r')
+        try:
+            nci = Dataset(nc_file, 'r')
+        except RuntimeError as e:
+            sys.stderr.write('{:s}: {:s}\n'.format(e.message, nc_file))
+            os.remove(nc_file)
+            continue
         
         ts0 = re.sub('\-|:', '', nci.time_coverage_start[:19])
         ts1 = re.sub('\-|:', '', nci.time_coverage_end[:19])
