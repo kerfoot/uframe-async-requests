@@ -40,15 +40,14 @@ def main(args):
                     continue
                 
                 sys.stdout.write('Request completed, downloading NetCDF files: {:s}\n'.format(hyrax_url))    
-                nc_files = download_hyrax_nc_files(hyrax_url, args.destdir, False)
+                nc_files = download_hyrax_nc_files(hyrax_url, args.destdir, True)
                 if not nc_files:
                     continue
                     
                 nc_files = timestamp_nc_files(nc_files)
                 for nc_file in nc_files:
                     sys.stdout.write('Downloaded: {:s}\n'.format(nc_file))
-                    
-                sys.stdout.flush()
+                    sys.stdout.flush()
         else:
             sys.stderr.write('Request already completed: {:s}\n'.format(request_meta['outputURL']))
             sys.stderr.flush()
@@ -75,6 +74,10 @@ if __name__ == '__main__':
         dest='destdir',
         default=os.getcwd(),
         help='Destination directory for writing NetCDF files if they are available')
+    arg_parser.add_argument('-v', '--verbose',
+        dest='verbose',
+        action='store_true',
+        help='Print download progress to STDOUT.')
     arg_parser.add_argument('-x', '--debug',
         dest='debug',
         action='store_true',
