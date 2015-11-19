@@ -70,7 +70,7 @@ def send_async_request(url, time_check=True):
     # endDT fall within the stream bounds contained in the metadata
     valid = validate_async_request(url, time_check=time_check)
     if not valid['valid']:
-        sys.stderr.write('Invalid asynchronous data request: {:s} (Reason: {:s})\n'.format(url, valid.reason))
+        sys.stderr.write('Invalid asynchronous data request: {:s} (Reason: {:s})\n'.format(url, valid['reason']))
         return status
     
     # Parse url for status fields
@@ -150,7 +150,7 @@ def validate_async_request(url, time_check=True):
     # Split the url and the parameters
     url_tokens = url.split('?')
     if len(url_tokens) != 2:
-        sys.stderr.write('Request contains no parameters: {:s}\n'.format(url))
+        valid['reason'] = 'Request contains no parameters: {:s}\n'.format(url)
         return valid
         
     parameters = url_tokens[1].split('&')
@@ -162,11 +162,11 @@ def validate_async_request(url, time_check=True):
         try:
             (p,v) = parameter.split('=')
         except ValueError as e:
-            sys.stderr.write('Malformed parameter: {:s}\n'.format(parameter))
+            valid['reason'] = 'Malformed parameter: {:s}\n'.format(parameter)
             return valid
         
         if p not in valid_parameters:
-            sys.stderr.write('Invalid parameter: {:s}\n'.format(p))
+            valid['reason'] = 'Invalid parameter: {:s}\n'.format(p)
             return valid    
         
         if p in _REQUIRED_PARAMETERS:
@@ -174,7 +174,7 @@ def validate_async_request(url, time_check=True):
             
         match = re.compile(_PARAMETER_REGEXPS[p]).search(v)
         if not match:
-            sys.stderr.write('Invalid parameter/value: {:s}\n'.format(parameter))
+            valid['reason'] = 'Invalid parameter/value: {:s}\n'.format(parameter)
             return valid
             
         # Special cases for checking values
@@ -183,11 +183,11 @@ def validate_async_request(url, time_check=True):
             try:
                 val = int(v)
                 if val >= 0:
-                    sys.stderr.write('URL is requesting a synchronouse request: {:s}={:s}\n'.format(p,v))
+                    valid['reason'] = 'URL is requesting a synchronouse request: {:s}={:s}\n'.format(p,v)
                     return valid
                     
             except ValueError as e:
-                sys.stderr.write('Invalid {:s} value: {:s}\n'.format(p, v))
+                valid['reason'] = 'Invalid {:s} value: {:s}\n'.format(p, v)
                 return valid
         
         # Convert beginDT to datetime
@@ -202,17 +202,14 @@ def validate_async_request(url, time_check=True):
     
     # Make sure beginDT occurs before endDT    
     if dt0 > dt1:
-        sys.stderr.write('Invalid time bounds (beginDT={:s} > endDT={:s}): {:s}\n'.format(beginDT, endDT, url))
-        return valid
-    
-    # Request is valid if we've made it here
-    valid['valid'] = True        
+        valid['reason'] = 'Invalid time bounds (beginDT={:s} > endDT={:s}): {:s}\n'.format(beginDT, endDT, url)
+        return valid        
     
     # Fetch metadata to get stream beginTime and endTime    
     METADATA_REGEXP = re.compile(r'^(http://.*/sensor/inv/\w{8}/\w{5}/\d{2}\-\w{9}/)(\w+)/(\w+)')
     match = METADATA_REGEXP.search(url) 
     if not match:
-        sys.stderr.write('Time check ERROR: invalid url {:s}\n'.format(url))
+        valid['reason'] = 'Time check ERROR: invalid url {:s}\n'.format(url)
         return valid
         
     metadata_url = '{:s}metadata/times'.format(match.groups()[0])
@@ -226,6 +223,9 @@ def validate_async_request(url, time_check=True):
         return valid
         
     metadata = r.json()
+     
+    # Request is valid if we've made it here
+    valid['valid'] = True
     
     # Find the stream
     streams = [m['stream'] for m in metadata]
