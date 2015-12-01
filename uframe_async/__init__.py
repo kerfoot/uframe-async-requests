@@ -59,7 +59,7 @@ _REQUIRED_PARAMETERS = ['beginDT',
 #        
 #    return 0
     
-def send_async_request(url, time_check=True):
+def send_async_request(url, timeout=120, time_check=True):
     '''Send an asynchronous UFrame data request and return the response and the
     request metadata from the url.
     '''
@@ -68,7 +68,7 @@ def send_async_request(url, time_check=True):
     
     # Make sure the url is formatted properly and check that the beginDT and 
     # endDT fall within the stream bounds contained in the metadata
-    valid = validate_async_request(url, time_check=time_check)
+    valid = validate_async_request(url, timeout=timeout, time_check=time_check)
     if not valid['valid']:
         sys.stderr.write('Invalid asynchronous data request: {:s} (Reason: {:s})\n'.format(url, valid['reason']))
         return status
@@ -113,17 +113,17 @@ def send_async_request(url, time_check=True):
     rt = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%sZ')
     
     # Send request
-    r = requests.get(url)
+    r = requests.get(url, timeout=timeout)
     
     # Store the server status code of the request
     status['status_code'] = r.status_code
     
     if r.status_code == 400:
-        sys.stderr.write('Request Failed (Reason={:s}): {:s}'.format(r.json()['message'], url))
+        sys.stderr.write('Request Failed (Reason={:s}): {:s}\n'.format(r.json()['message'], url))
         status['reason'] = r.json()['message']
         return status
     elif r.status_code != 200:
-        sys.stderr.write('Request Failed (Reason={:s}): {:s}'.format(r.reason, url))
+        sys.stderr.write('Request Failed (Reason={:s}): {:s}\n'.format(r.reason, url))
         status['reason'] = r.reason
         return status
         
@@ -136,7 +136,7 @@ def send_async_request(url, time_check=True):
 
     return status
     
-def validate_async_request(url, time_check=True):
+def validate_async_request(url, timeout=120, time_check=True):
     '''Validates url to ensure that the request is formatted properly.  Set
     time_check=True to check that the beginDT and endDT are within the specified
     stream time bounds.'''
@@ -216,7 +216,7 @@ def validate_async_request(url, time_check=True):
     telemetry = match.groups()[1]
     stream = match.groups()[2]
     # Send the metadata request
-    r = requests.get(metadata_url)
+    r = requests.get(metadata_url, timeout=timeout)
     if r.status_code != 200:
         valid['reason'] = 'Failed to fetch metadata: {:s}\n'.format(metadata_url)
         sys.stderr.flush()
@@ -260,22 +260,27 @@ def validate_async_request(url, time_check=True):
         
     return valid
     
-def check_async_request_availability(async_request):
+def check_async_request_availability(request_url):
     
     time_available = None
     
-    opendap_url_key = 'outputURL'
-    if opendap_url_key not in async_request.keys():
-        sys.stderr.write('async_request is missing the outputURL\n')
-        return time_available
+    #opendap_url_key = 'outputURL'
+    #if opendap_url_key not in async_request.keys():
+    #    sys.stderr.write('async_request is missing the outputURL\n')
+    #    return time_available
         
     #sys.stdout.write('outputURL: {:s}\n'.format(async_request[opendap_url_key]))
     #return time_available
     
     # Attempt to fetch the opendap url top-level directory page
-    r = requests.get(async_request[opendap_url_key])
+    r = requests.get(request_url)
     if r.status_code != 200:
-        sys.stderr.write('Invalid request: {:s} ({:s})\n'.format(async_request['outputURL'], r.reason))
+        sys.stderr.write('Invalid request: {:s} ({:s})\n'.format(request_url, r.reason))
+        sys.stderr.flush()
+        return time_available
+    elif r.text != 'complete':
+        sys.stderr.write('Request not yet complete: {:s}\n'.format(request_url))
+        sys.stderr.flush()
         return time_available
         
     time_available = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%sZ')
