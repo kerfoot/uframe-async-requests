@@ -2,6 +2,7 @@
 
 import csv
 import argparse
+import sys
 from uframe_async import *
     
 def main(args):
@@ -38,6 +39,7 @@ def main(args):
         #sys.stderr.write('Sending request: {:s}\n'.format(url.strip()))  
         status = send_async_request(url.strip())
         if not status:
+#            sys.stderr.write('Request failed: {:s}\n'.format(url.strip()))
             success = False
             continue
             
@@ -46,28 +48,9 @@ def main(args):
             #responses.append(status)
 
     fid.close()
-            
-    #if not status:
-    #    return 1
-        
-    #csv_writer = csv.writer(sys.stdout)
-    #cols = ['instrument',
-    #    'beginDT',
-    #    'endDT',
-    #    'status_code',
-    #    'reason',
-    #    'stream_beginDT',
-    #    'stream_endDT',
-    #    'valid',
-    #    'valid_time_interval',
-    #    'request_time',
-    #    'requestUUID',
-    #    'outputURL',
-    #    'request_url']
-    #csv_writer.writerow(cols)
-    #for x in responses:
-    #    x_keys = x.keys()
-    #    csv_writer.writerow([x[k] for k in cols if k in x_keys])
+    
+    if not success:
+        sys.stderr.write('One or more request failed\n')
         
     return success
         
