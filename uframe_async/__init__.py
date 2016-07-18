@@ -104,6 +104,13 @@ def send_async_request(url, timeout=120, time_check=True):
     status['requestUUID'] = None
     status['outputURL'] = None
     status['request_time'] = None
+    status['user'] = '_nouser'
+    
+    # See if a user parameter was specified in the request url and pull out the
+    # user name if specified
+    match = re.search('&user=(.*)', url)
+    if match:
+        status['user'] = match.groups()[0]
     
     # Add validation parameters
     for (k,v) in valid.items():
@@ -146,6 +153,10 @@ def validate_async_request(url, timeout=120, time_check=True):
         'stream_beginDT' : None,
         'stream_endDT' : None,
         'reason' : ''}
+
+    # 2016-07-11: skip validation since we know we're creating good requests
+    valid['valid'] = True
+    return valid
         
     # Split the url and the parameters
     url_tokens = url.split('?')
